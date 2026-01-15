@@ -303,7 +303,7 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/HELL0ANTHONY/fintech-event-processing-service)
+        - prefix(github.com/HELL0ANTHONY/payment-system)
       custom-order: true
     gofmt:
       simplify: true
