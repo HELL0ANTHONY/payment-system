@@ -51,23 +51,23 @@ type EventPublisher interface {
 }
 
 type Wallet struct {
+	UpdatedAt time.Time `dynamodbav:"updated_at"`
 	ID        string    `dynamodbav:"id"`
 	UserID    string    `dynamodbav:"user_id"`
 	Balance   string    `dynamodbav:"balance"`
 	Currency  string    `dynamodbav:"currency"`
-	UpdatedAt time.Time `dynamodbav:"updated_at"`
 	Version   int       `dynamodbav:"version"`
 }
 
 type Reservation struct {
+	ExpiresAt time.Time `dynamodbav:"expires_at"`
+	CreatedAt time.Time `dynamodbav:"created_at"`
 	ID        string    `dynamodbav:"id"`
 	PaymentID string    `dynamodbav:"payment_id"`
 	UserID    string    `dynamodbav:"user_id"`
 	Amount    string    `dynamodbav:"amount"`
 	Currency  string    `dynamodbav:"currency"`
 	Status    string    `dynamodbav:"status"`
-	ExpiresAt time.Time `dynamodbav:"expires_at"`
-	CreatedAt time.Time `dynamodbav:"created_at"`
 }
 
 type Service struct {
@@ -135,10 +135,12 @@ func (s *Service) ReserveFunds(
 
 	if err := s.publisher.Publish(ctx, s.gatewayQueueURL, &event); err != nil {
 		slog.Error("failed to publish funds reserved", "error", err)
+
 		return err
 	}
 
 	slog.Info("funds reserved", "payment_id", paymentID, "reservation_id", reservation.ID)
+
 	return nil
 }
 
@@ -162,6 +164,7 @@ func (s *Service) ConfirmDeduction(
 	}
 
 	slog.Info("funds deducted", "payment_id", paymentID, "amount", reservation.Amount)
+
 	return nil
 }
 
@@ -177,6 +180,7 @@ func (s *Service) ReleaseFunds(ctx context.Context, reservationID, reason string
 	}
 
 	slog.Info("funds released", "reservation_id", reservationID, "reason", reason)
+
 	return nil
 }
 
@@ -193,6 +197,7 @@ func (s *Service) getWalletByUser(ctx context.Context, userID string) (*Wallet, 
 	if err != nil {
 		return nil, err
 	}
+
 	if len(result.Items) == 0 {
 		return nil, ErrWalletNotFound
 	}
@@ -201,6 +206,7 @@ func (s *Service) getWalletByUser(ctx context.Context, userID string) (*Wallet, 
 	if err := attributevalue.UnmarshalMap(result.Items[0], &wallet); err != nil {
 		return nil, err
 	}
+
 	return &wallet, nil
 }
 
@@ -230,6 +236,7 @@ func (s *Service) deductFromWallet(
 			":v":      &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", wallet.Version)},
 		},
 	})
+
 	return err
 }
 
@@ -238,10 +245,12 @@ func (s *Service) saveReservation(ctx context.Context, r *Reservation) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = s.db.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(s.reservationsTable),
 		Item:      item,
 	})
+
 	return err
 }
 
@@ -255,11 +264,13 @@ func (s *Service) getReservation(ctx context.Context, id string) (*Reservation, 
 	if err != nil {
 		return nil, err
 	}
+
 	if result.Item == nil {
 		return nil, errors.New("reservation not found")
 	}
 
 	var r Reservation
+
 	return &r, attributevalue.UnmarshalMap(result.Item, &r)
 }
 
@@ -277,11 +288,12 @@ func (s *Service) updateReservation(ctx context.Context, r *Reservation) error {
 			":status": &types.AttributeValueMemberS{Value: r.Status},
 		},
 	})
+
 	return err
 }
 
 func (s *Service) publishReservationFailed(
-	ctx context.Context,
+	_ context.Context,
 	paymentID, userID string,
 	amount decimal.Decimal,
 	currency, reason string,
@@ -290,5 +302,6 @@ func (s *Service) publishReservationFailed(
 	event.WithAmount(amount, currency).WithReason(reason)
 
 	slog.Warn("reservation failed", "payment_id", paymentID, "reason", reason)
+
 	return fmt.Errorf("reservation failed: %s", reason)
 }
