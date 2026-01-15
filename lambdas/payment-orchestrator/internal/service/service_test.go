@@ -42,16 +42,6 @@ func (m *mockDB) GetItem(
 	return args.Get(0).(*dynamodb.GetItemOutput), args.Error(1)
 }
 
-func (m *mockDB) UpdateItem(
-	ctx context.Context,
-	input *dynamodb.UpdateItemInput,
-	opts ...func(*dynamodb.Options),
-) (*dynamodb.UpdateItemOutput, error) {
-	args := m.Called(ctx, input)
-
-	return args.Get(0).(*dynamodb.UpdateItemOutput), args.Error(1)
-}
-
 type mockPublisher struct {
 	mock.Mock
 }
@@ -137,7 +127,6 @@ func TestCreatePayment_PublishError_StillSucceeds(t *testing.T) {
 		decimal.NewFromInt(100),
 	)
 
-	// Payment should still be created even if publish fails
 	assert.NoError(t, err)
 	assert.NotNil(t, payment)
 }
@@ -153,6 +142,7 @@ func TestGetPayment_Success(t *testing.T) {
 		Currency: "MXN",
 		Status:   "completed",
 	}
+
 	item, _ := attributevalue.MarshalMap(existingPayment)
 
 	db.On("GetItem", ctx, mock.Anything).Return(&dynamodb.GetItemOutput{Item: item}, nil)
@@ -179,18 +169,4 @@ func TestGetPayment_NotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrPaymentNotFound)
 	assert.Nil(t, payment)
-}
-
-func TestUpdateStatus_Success(t *testing.T) {
-	ctx := context.Background()
-	db := new(mockDB)
-
-	db.On("UpdateItem", ctx, mock.Anything).Return(&dynamodb.UpdateItemOutput{}, nil)
-
-	svc := New(db, nil, "payments", "")
-
-	err := svc.UpdateStatus(ctx, "pay-123", "completed")
-
-	assert.NoError(t, err)
-	db.AssertExpectations(t)
 }

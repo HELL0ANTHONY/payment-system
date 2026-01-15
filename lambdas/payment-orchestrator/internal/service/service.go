@@ -18,7 +18,6 @@ import (
 
 var ErrPaymentNotFound = errors.New("payment not found")
 
-// DynamoDBClient defines the DynamoDB operations we need.
 type DynamoDBClient interface {
 	PutItem(
 		ctx context.Context,
@@ -30,19 +29,15 @@ type DynamoDBClient interface {
 		params *dynamodb.GetItemInput,
 		optFns ...func(*dynamodb.Options),
 	) (*dynamodb.GetItemOutput, error)
-	UpdateItem(
-		ctx context.Context,
-		params *dynamodb.UpdateItemInput,
-		optFns ...func(*dynamodb.Options),
-	) (*dynamodb.UpdateItemOutput, error)
 }
 
-// EventPublisher defines the event publishing operations we need.
 type EventPublisher interface {
 	Publish(ctx context.Context, queueURL string, event *events.Event) error
 }
 
 type Payment struct {
+	CreatedAt   time.Time       `dynamodbav:"created_at"`
+	UpdatedAt   time.Time       `dynamodbav:"updated_at"`
 	ID          string          `dynamodbav:"id"`
 	UserID      string          `dynamodbav:"user_id"`
 	ServiceID   string          `dynamodbav:"service_id"`
@@ -50,8 +45,6 @@ type Payment struct {
 	Currency    string          `dynamodbav:"currency"`
 	Status      string          `dynamodbav:"status"`
 	Description string          `dynamodbav:"description"`
-	CreatedAt   time.Time       `dynamodbav:"created_at"`
-	UpdatedAt   time.Time       `dynamodbav:"updated_at"`
 }
 
 type Service struct {
@@ -70,6 +63,7 @@ func New(db DynamoDBClient, pub EventPublisher, tableName, walletQueueURL string
 	}
 }
 
+// CreatePayment creates a new payment record.
 func (s *Service) CreatePayment(
 	ctx context.Context,
 	userID, serviceID, currency, description string,
@@ -108,9 +102,11 @@ func (s *Service) CreatePayment(
 	}
 
 	slog.Info("payment created", "payment_id", payment.ID, "user_id", userID)
+
 	return payment, nil
 }
 
+// GetPayment retrieves a payment by its ID.
 func (s *Service) GetPayment(ctx context.Context, id string) (*Payment, error) {
 	result, err := s.db.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(s.tableName),
@@ -132,22 +128,4 @@ func (s *Service) GetPayment(ctx context.Context, id string) (*Payment, error) {
 	}
 
 	return &payment, nil
-}
-
-func (s *Service) UpdateStatus(ctx context.Context, id, status string) error {
-	_, err := s.db.UpdateItem(ctx, &dynamodb.UpdateItemInput{
-		TableName: aws.String(s.tableName),
-		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberS{Value: id},
-		},
-		UpdateExpression: aws.String("SET #status = :status, updated_at = :now"),
-		ExpressionAttributeNames: map[string]string{
-			"#status": "status",
-		},
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":status": &types.AttributeValueMemberS{Value: status},
-			":now":    &types.AttributeValueMemberS{Value: time.Now().UTC().Format(time.RFC3339)},
-		},
-	})
-	return err
 }

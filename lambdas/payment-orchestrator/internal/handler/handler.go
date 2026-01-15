@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,7 +23,7 @@ func New(svc *service.Service) *Handler {
 
 func (h *Handler) Handle(
 	ctx context.Context,
-	req events.APIGatewayProxyRequest,
+	req *events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
 	switch req.HTTPMethod {
 	case http.MethodPost:
@@ -36,10 +37,12 @@ func (h *Handler) Handle(
 
 func (h *Handler) createPayment(
 	ctx context.Context,
-	req events.APIGatewayProxyRequest,
+	req *events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
 	var input models.CreatePaymentRequest
 	if err := json.Unmarshal([]byte(req.Body), &input); err != nil {
+		slog.Error("failed to unmarshal create payment request", "error", err)
+
 		return h.response(http.StatusBadRequest, models.ErrorJSON("invalid json")), nil
 	}
 
@@ -56,6 +59,8 @@ func (h *Handler) createPayment(
 		input.Amount,
 	)
 	if err != nil {
+		slog.Error("failed to create payment", "error", err)
+
 		return h.response(
 			http.StatusInternalServerError,
 			models.ErrorJSON("failed to create payment"),
@@ -78,7 +83,7 @@ func (h *Handler) createPayment(
 
 func (h *Handler) getPayment(
 	ctx context.Context,
-	req events.APIGatewayProxyRequest,
+	req *events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
 	id := req.PathParameters["id"]
 	if id == "" {
