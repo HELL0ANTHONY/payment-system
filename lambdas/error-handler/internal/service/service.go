@@ -29,15 +29,15 @@ type EventPublisher interface {
 
 // FailedEvent represents a failed event stored for analysis.
 type FailedEvent struct {
+	CreatedAt     time.Time `dynamodbav:"created_at"`
 	ID            string    `dynamodbav:"id"`
 	OriginalEvent string    `dynamodbav:"original_event"`
 	EventType     string    `dynamodbav:"event_type"`
 	PaymentID     string    `dynamodbav:"payment_id"`
 	ErrorMessage  string    `dynamodbav:"error_message"`
 	Source        string    `dynamodbav:"source"`
-	RetryCount    int       `dynamodbav:"retry_count"`
 	Status        string    `dynamodbav:"status"`
-	CreatedAt     time.Time `dynamodbav:"created_at"`
+	RetryCount    int       `dynamodbav:"retry_count"`
 }
 
 type Service struct {
@@ -81,6 +81,7 @@ func (s *Service) HandleFailedEvent(
 	var event events.Event
 	if err := json.Unmarshal([]byte(body), &event); err != nil {
 		slog.Error("failed to unmarshal event", "error", err)
+
 		return s.storeFailedEvent(
 			ctx,
 			messageID,
@@ -93,13 +94,11 @@ func (s *Service) HandleFailedEvent(
 		)
 	}
 
-	// Check if we should retry
 	if retryCount < s.maxRetries && s.isRetryable(event.Type) {
 		slog.Info("retrying event", "type", event.Type, "attempt", retryCount+1)
 		return s.retryEvent(ctx, &event)
 	}
 
-	// Store for manual review
 	return s.storeFailedEvent(
 		ctx,
 		messageID,
@@ -117,6 +116,7 @@ func (s *Service) isRetryable(eventType string) bool {
 		events.PaymentInitiated: true,
 		events.FundsReserved:    true,
 	}
+
 	return retryable[eventType]
 }
 
@@ -125,7 +125,9 @@ func (s *Service) retryEvent(ctx context.Context, event *events.Event) error {
 		slog.Error("failed to retry event", "error", err)
 		return err
 	}
+
 	slog.Info("event retried", "type", event.Type, "payment_id", event.PaymentID)
+
 	return nil
 }
 
@@ -168,5 +170,6 @@ func (s *Service) storeFailedEvent(
 		"error",
 		errorMsg,
 	)
+
 	return nil
 }

@@ -19,38 +19,44 @@ func New(svc *service.Service) *Handler {
 }
 
 // Handle processes DLQ messages.
-func (h *Handler) Handle(ctx context.Context, sqsEvent awsEvents.SQSEvent) error {
+func (h *Handler) Handle(ctx context.Context, sqsEvent *awsEvents.SQSEvent) error {
 	slog.Info("processing DLQ batch", "count", len(sqsEvent.Records))
 
 	var lastErr error
-	for _, record := range sqsEvent.Records {
-		if err := h.processRecord(ctx, record); err != nil {
+
+	for i := range sqsEvent.Records {
+		record := sqsEvent.Records[i]
+
+		if err := h.processRecord(ctx, &record); err != nil {
 			slog.Error("failed to process DLQ record", "error", err, "message_id", record.MessageId)
 			lastErr = err
 		}
 	}
+
 	return lastErr
 }
 
-func (h *Handler) processRecord(ctx context.Context, record awsEvents.SQSMessage) error {
+func (h *Handler) processRecord(ctx context.Context, record *awsEvents.SQSMessage) error {
 	source := h.getSource(record)
 	retryCount := h.getRetryCount(record)
 
 	return h.svc.HandleFailedEvent(ctx, record.MessageId, record.Body, source, retryCount)
 }
 
-func (h *Handler) getSource(record awsEvents.SQSMessage) string {
+func (h *Handler) getSource(record *awsEvents.SQSMessage) string {
 	if arn := record.EventSourceARN; arn != "" {
 		return arn
 	}
+
 	return "unknown"
 }
 
-func (h *Handler) getRetryCount(record awsEvents.SQSMessage) int {
+func (h *Handler) getRetryCount(record *awsEvents.SQSMessage) int {
 	if attr, ok := record.Attributes["ApproximateReceiveCount"]; ok {
 		if count, err := strconv.Atoi(attr); err == nil {
 			return count
 		}
 	}
+
 	return 0
 }
