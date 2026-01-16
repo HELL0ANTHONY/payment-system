@@ -1,0 +1,10 @@
+go 1.25.5
+
+use (
+	./shared
+	./lambdas/payment-orchestrator
+	./lambdas/wallet-service
+	./lambdas/gateway-processor
+	./lambdas/metrics-collector
+	./lambdas/error-handler
+)
