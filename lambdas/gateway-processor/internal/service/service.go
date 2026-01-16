@@ -127,9 +127,9 @@ func NewMockGateway(failRate float64) *MockGateway {
 }
 
 func (g *MockGateway) ProcessPayment(
-	ctx context.Context,
-	amount decimal.Decimal,
-	currency string,
+	_ context.Context,
+	_ decimal.Decimal,
+	_ string,
 ) (*GatewayResponse, error) {
 	time.Sleep(time.Duration(50+rand.Intn(100)) * time.Millisecond)
 
