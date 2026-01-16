@@ -20,8 +20,7 @@ func New(svc *service.Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// Handle processes EventBridge events.
-func (h *Handler) Handle(ctx context.Context, ebEvent awsEvents.CloudWatchEvent) error {
+func (h *Handler) Handle(ctx context.Context, ebEvent *awsEvents.CloudWatchEvent) error {
 	slog.Info("received event", "type", ebEvent.DetailType, "source", ebEvent.Source)
 
 	var event events.Event
@@ -31,6 +30,7 @@ func (h *Handler) Handle(ctx context.Context, ebEvent awsEvents.CloudWatchEvent)
 
 	if err := h.svc.RecordEvent(ctx, &event); err != nil {
 		slog.Error("failed to record event", "error", err)
+
 		return err
 	}
 

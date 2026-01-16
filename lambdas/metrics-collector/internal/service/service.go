@@ -55,6 +55,7 @@ func (s *Service) RecordEvent(ctx context.Context, event *events.Event) error {
 
 func (s *Service) buildMetrics(event *events.Event) []types.MetricDatum {
 	now := time.Now()
+
 	var metrics []types.MetricDatum
 
 	metrics = append(metrics, types.MetricDatum{
@@ -113,7 +114,7 @@ func (s *Service) failureMetric(t time.Time, eventType string) types.MetricDatum
 }
 
 // GetStats returns aggregated stats (for testing/debugging).
-func (s *Service) GetStats(ctx context.Context, event *events.Event) map[string]any {
+func (s *Service) GetStats(_ context.Context, event *events.Event) map[string]any {
 	return map[string]any{
 		"event_type": event.Type,
 		"payment_id": event.PaymentID,
