@@ -1,6 +1,6 @@
 # Sistema de Pagos Orientado a Eventos
 
-Sistema de procesamiento de pagos basado en arquitectura event-driven usando AWS Lambda, SQS, EventBridge y DynamoDB.
+Sistema de pagos orientado a eventos que simula un flujo real de autorización, reserva de fondos, procesamiento con gateway externo, compensación de errores y métricas operativas usando arquitectura serverless en AWS.
 
 ## Arquitectura
 
