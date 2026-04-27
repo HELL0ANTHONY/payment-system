@@ -2,6 +2,20 @@
 
 Sistema de pagos orientado a eventos que simula un flujo real de autorización, reserva de fondos, procesamiento con gateway externo, compensación de errores y métricas operativas usando arquitectura serverless en AWS.
 
+## Qué demuestra este proyecto
+
+Este proyecto busca demostrar experiencia práctica en:
+
+- Diseño de arquitecturas event-driven
+- Desarrollo backend con Go
+- Servicios serverless en AWS
+- Procesamiento asíncrono con SQS y EventBridge
+- Modelado de datos en DynamoDB
+- Manejo de errores, DLQ y reintentos
+- Transacciones compensatorias
+- Observabilidad con logs estructurados y métricas
+- Organización de código para múltiples Lambdas
+
 ## Arquitectura
 
 ```
